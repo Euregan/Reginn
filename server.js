@@ -16,24 +16,25 @@ module.exports = http.createServer(function(request, response) {
         send(templates('home'))
     })
 
+    router.add('admin', function (r) {
+        send(templates('admin'))
+    })
+
 
     router.add('api/connectors', function() {
         response.setHeader('Content-Type', 'application/json')
-        database.Connectors.findAll().then((result) => {
+        database.Connectors.findAll({include: [
+            {model: database.Specifications}
+        ]}).then((result) => {
             send(JSON.stringify(result))
         })
     })
 
-    router.add('api/items/:item', function() {
+    router.add('api/specifications', function() {
         response.setHeader('Content-Type', 'application/json')
-        database.Items.findAll({
-            where: {
-                id: r.params.item
-            },
-            include: [
-                {model: database.Connectors}
-            ]
-        }).then((result) => {
+        database.Specifications.findAll({include: [
+            {model: database.Connectors}
+        ]}).then((result) => {
             send(JSON.stringify(result))
         })
     })
@@ -49,8 +50,68 @@ module.exports = http.createServer(function(request, response) {
 
 			request.on('end', function() {
                 let item = JSON.parse(result.split('\n')[3])
-                database.Items.create(item).then(function() {
-                    send(JSON.stringify({ok: true}))
+                database.Items.create(item).then(function(item) {
+                    send(JSON.stringify(item))
+                })
+            })
+        } else {
+            database.Items.findAll({
+                include: [
+                    {
+                        model: database.Specifications,
+                        include: [
+                            {model: database.Connectors}
+                        ]
+                    }
+                ]
+            }).then((result) => {
+                send(JSON.stringify(result))
+            })
+        }
+    })
+
+    router.add('api/items/:item', function() {
+        response.setHeader('Content-Type', 'application/json')
+        database.Items.findAll({
+            where: {
+                id: r.params.item
+            },
+            include: [
+                {
+                    model: database.Specifications,
+                    include: [
+                        {model: database.Connectors}
+                    ]
+                }
+            ]
+        }).then((result) => {
+            send(JSON.stringify(result))
+        })
+    })
+
+    router.add('api/items/:item/specifications', function(r) {
+        response.setHeader('Content-Type', 'application/json')
+        if (request.method === 'POST') {
+			var result = ''
+
+			request.on('data', function(chunk) {
+				result += chunk
+			})
+
+			request.on('end', function() {
+                let infos = JSON.parse(result.split('\n')[3])
+                let link = {
+                    itemId: r.params.item,
+                    specificationId: infos.specificationId,
+                    type: infos.type
+                }
+                database.ItemsSpecifications.create(link).then(function() {
+                    database.Specifications.findAll({
+                        where: {id: infos.specificationId},
+                        include: [{model: database.Connectors}]
+                    }).then((specification) => {
+                        send(JSON.stringify(specification[0]))
+                    })
                 })
             })
         } else {

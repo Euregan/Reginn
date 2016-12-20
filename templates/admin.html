@@ -1,0 +1,118 @@
+{{=<% %>=}}
+
+<div id="app">
+    <h2>Admin</h2>
+    <div>
+        <h3>Items</h3>
+        <ul>
+            <item v-for="item in items" item="item">
+                <template v-if="item.specifications.length > 1">
+                    {{item.name}}
+                    <ul>
+                        <li v-for="specification in item.specifications">
+                            {{specification.connector.name}} - {{specification.name}}
+                        </li>
+                    </ul>
+                </template>
+                <template v-if="item.specifications.length == 1">
+                    {{item.name}} - {{item.specifications[0].connector.name}} - {{item.specifications[0].name}}
+                </template>
+                <template v-if="item.specifications.length == 0">
+                    {{item.name}}
+                </template>
+                <div>
+                    <select v-model="item.selectedSpecification">
+                        <option v-for="specification in specifications" v-bind:value="specification.id">
+                            {{specification.connector.name}} - {{specification.name}}
+                        </option>
+                    </select>
+                    <select v-model="item.selectedType">
+                        <option value="M">Male</option>
+                        <option value="F">Female</option>
+                    </select>
+                    <button v-on:click="addConnector(item)">Add connector</button>
+                </div>
+            </li>
+        </ul>
+        <input type="text" v-model="itemName">
+        <button v-on:click="createItem(itemName)">Add item</button>
+    </div>
+</div>
+
+<script type="text/javascript">
+    var app = new Vue({
+        el: '#app',
+        methods: {
+            start() {
+                var vue = this
+
+                fetch('/api/specifications')
+                    .then(function(result) {return result.json()})
+                    .then(function(specifications) {vue.specifications = specifications})
+
+                fetch('/api/items')
+                    .then(function(result) {return result.json()})
+                    .then(function(items) {
+                        return items.map(function(item) {
+                            item.selectedSpecification = null
+                            item.selectedType = null
+                            return item
+                        })
+                    })
+                    .then(function(items) {vue.items = items})
+            },
+            createItem(name) {
+                var vue = this
+
+                var corps = new FormData()
+                corps.append('json', JSON.stringify({name: name}))
+
+                var options = {
+                    method: 'POST',
+                    headers: new Headers(),
+                    mode: 'cors',
+                    cache: 'default',
+                    body: corps
+                }
+
+                fetch('/api/items', options)
+                    .then(function(result) {return result.json()})
+                    .then(function(item) {
+                        item.selectedSpecification = null
+                        item.selectedType = null
+                        item.specifications = []
+                        return item
+                    })
+                    .then(function(item) {vue.items.push(item)})
+            },
+            addConnector(item) {
+                var vue = this
+
+                var corps = new FormData()
+                corps.append('json', JSON.stringify({
+                    specificationId: item.selectedSpecification,
+                    type: item.selectedType
+                }))
+
+                var options = {
+                    method: 'POST',
+                    headers: new Headers(),
+                    mode: 'cors',
+                    cache: 'default',
+                    body: corps
+                }
+
+                fetch('/api/items/' + item.id + '/specifications', options)
+                    .then(function(result) {return result.json()})
+                    .then(function(specification) {item.specifications.push(specification)})
+            }
+        },
+        data: {
+            items: [],
+            specifications: [],
+            itemName: null
+        }
+    })
+    app.start()
+</script>
+<%={{ }}=%>
