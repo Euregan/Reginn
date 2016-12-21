@@ -6,20 +6,22 @@
         <h3>Items</h3>
         <ul>
             <li v-for="item in items">
-                <template v-if="item.specifications.length > 1">
-                    {{item.name}}
-                    <ul>
-                        <li v-for="specification in item.specifications">
-                            {{specification.connector.name}} - {{specification.name}}
-                        </li>
-                    </ul>
-                </template>
-                <template v-if="item.specifications.length == 1">
-                    {{item.name}} - {{item.specifications[0].connector.name}} - {{item.specifications[0].name}}
-                </template>
-                <template v-if="item.specifications.length == 0">
-                    {{item.name}}
-                </template>
+                <a :href="'/rig/' + item.id">
+                    <template v-if="item.specifications.length > 1">
+                        {{item.name}}
+                        <ul>
+                            <li v-for="specification in item.specifications">
+                                {{specification.connector.name}} - {{specification.name}}
+                            </li>
+                        </ul>
+                    </template>
+                    <template v-if="item.specifications.length == 1">
+                        {{item.name}} - {{item.specifications[0].connector.name}} - {{item.specifications[0].name}}
+                    </template>
+                    <template v-if="item.specifications.length == 0">
+                        {{item.name}}
+                    </template>
+                </a>
                 <div>
                     <select v-model="item.selectedSpecification">
                         <option v-for="specification in specifications" v-bind:value="specification.id">
@@ -37,6 +39,33 @@
         <input type="text" v-model="itemName">
         <button v-on:click="createItem(itemName)">Add item</button>
     </div>
+    <div>
+        <h3>Connectors</h3>
+        <ul>
+            <li v-for="connector in connectors">
+                <template v-if="connector.specifications.length > 1">
+                    {{connector.name}}
+                    <ul>
+                        <li v-for="specification in connector.specifications">
+                            {{specification.name}}
+                        </li>
+                    </ul>
+                </template>
+                <template v-if="connector.specifications.length == 1">
+                    {{connector.name}} - {{connector.specifications[0].name}}
+                </template>
+                <template v-if="connector.specifications.length == 0">
+                    {{connector.name}}
+                </template>
+                <div>
+                    <input type="text" v-model="connector.specificationName">
+                    <button v-on:click="addSpecification(connector)">Add specification</button>
+                </div>
+            </li>
+        </ul>
+        <input type="text" v-model="connectorName">
+        <button v-on:click="createConnector(connectorName)">Add connector</button>
+    </div>
 </div>
 
 <script type="text/javascript">
@@ -49,6 +78,16 @@
                 fetch('/api/specifications')
                     .then(function(result) {return result.json()})
                     .then(function(specifications) {vue.specifications = specifications})
+
+                fetch('/api/connectors')
+                    .then(function(result) {return result.json()})
+                    .then(function(connectors) {
+                        return connectors.map(function(connector) {
+                            connector.specificationName = null
+                            return connector
+                        })
+                    })
+                    .then(function(connectors) {vue.connectors = connectors})
 
                 fetch('/api/items')
                     .then(function(result) {return result.json()})
@@ -105,12 +144,58 @@
                 fetch('/api/items/' + item.id + '/specifications', options)
                     .then(function(result) {return result.json()})
                     .then(function(specification) {item.specifications.push(specification)})
+            },
+            createConnector(name) {
+                var vue = this
+
+                var corps = new FormData()
+                corps.append('json', JSON.stringify({name: name}))
+
+                var options = {
+                    method: 'POST',
+                    headers: new Headers(),
+                    mode: 'cors',
+                    cache: 'default',
+                    body: corps
+                }
+
+                fetch('/api/connectors', options)
+                    .then(function(result) {return result.json()})
+                    .then(function(connector) {
+                        connector.specificationName = null
+                        connector.specifications = []
+                        return connector
+                    })
+                    .then(function(connector) {vue.connectors.push(connector)})
+            },
+            addSpecification(connector) {
+                var vue = this
+
+                var corps = new FormData()
+                corps.append('json', JSON.stringify({name: connector.specificationName}))
+
+                var options = {
+                    method: 'POST',
+                    headers: new Headers(),
+                    mode: 'cors',
+                    cache: 'default',
+                    body: corps
+                }
+
+                fetch('/api/connectors/' + connector.id + '/specifications', options)
+                    .then(function(result) {return result.json()})
+                    .then(function(specification) {
+                        connector.specifications.push(specification)
+                        vue.specification.push(specification)
+                    })
             }
         },
         data: {
             items: [],
             specifications: [],
-            itemName: null
+            connectors: [],
+            itemName: null,
+            connectorName: null
         }
     })
     app.start()

@@ -29,11 +29,50 @@ module.exports = http.createServer(function(request, response) {
 
     router.add('api/connectors', function() {
         response.setHeader('Content-Type', 'application/json')
-        database.Connectors.findAll({include: [
-            {model: database.Specifications}
-        ]}).then((result) => {
-            send(JSON.stringify(result))
-        })
+        if (request.method === 'POST') {
+			var result = ''
+
+			request.on('data', function(chunk) {
+				result += chunk
+			})
+
+			request.on('end', function() {
+                let connector = JSON.parse(result.split('\n')[3])
+                database.Connectors.create(connector).then(function(connector) {
+                    send(JSON.stringify(connector))
+                })
+            })
+        } else {
+            database.Connectors.findAll({include: [
+                {model: database.Specifications}
+            ]}).then((result) => {
+                send(JSON.stringify(result))
+            })
+        }
+    })
+
+    router.add('api/connectors/:connector/specifications', function(r) {
+        response.setHeader('Content-Type', 'application/json')
+        if (request.method === 'POST') {
+			var result = ''
+
+			request.on('data', function(chunk) {
+				result += chunk
+			})
+
+			request.on('end', function() {
+                let infos = JSON.parse(result.split('\n')[3])
+                let specification = {
+                    name: infos.name,
+                    connectorId: r.params.connector
+                }
+                database.Specifications.create(specification).then(function(specification) {
+                    send(JSON.stringify(specification))
+                })
+            })
+        } else {
+            send('404')
+        }
     })
 
     router.add('api/specifications', function() {
