@@ -5,7 +5,7 @@
     <div>
         <h3>Items</h3>
         <ul>
-            <item v-for="item in items" item="item">
+            <li v-for="item in items">
                 <template v-if="item.specifications.length > 1">
                     {{item.name}}
                     <ul>

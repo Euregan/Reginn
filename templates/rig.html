@@ -1,0 +1,56 @@
+{{=<% %>=}}
+
+<div id="app">
+    <h2>Rig</h2>
+    <template v-if="item">
+        <h3>{{item.name}}</h3>
+        <table>
+            <tr v-for="specification in item.specifications">
+                <td>{{specification.connector.name}} - {{specification.name}}</td>
+                <td>
+                    <select>
+                        <option v-for="item in filterItems(item.specifications)">
+                            {{item.name}}
+                        </option>
+                    </select>
+                </td>
+            </tr>
+        </table>
+    </template>
+</div>
+
+<script type="text/javascript">
+    var app = new Vue({
+        el: '#app',
+        methods: {
+            start() {
+                var vue = this
+
+                fetch('/api/items')
+                    .then(function(result) {return result.json()})
+                    .then(function(items) {
+                        vue.item = items.filter(function(item) {
+                            return item.id == <% item %>
+                        })[0]
+                        vue.items = items
+                    })
+            },
+            filterItems(specifications) {
+                return this.items.filter(function(item) {
+                    return item.specifications.filter(function(specification) {
+                        return specifications.filter(function(spec) {
+                            return spec.connectorId == specification.connectorId &&
+                                spec.items_specifications.type != specification.items_specifications.type
+                        }).length > 0
+                    }).length > 0
+                })
+            }
+        },
+        data: {
+            items: [],
+            item: null
+        }
+    })
+    app.start()
+</script>
+<%={{ }}=%>

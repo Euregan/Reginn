@@ -20,6 +20,12 @@ module.exports = http.createServer(function(request, response) {
         send(templates('admin'))
     })
 
+    router.add('rig/:item', function (r) {
+        send(templates('rig', {
+            item: r.params.item
+        }))
+    })
+
 
     router.add('api/connectors', function() {
         response.setHeader('Content-Type', 'application/json')
